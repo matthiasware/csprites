@@ -12,19 +12,20 @@
 
 | Positions | Grid | Shape |
 |---|---|---|
-| 1^2 | - | - |
-| 2^2 | - | - |
-| 4^2 | - | - |
-| 8^2 | - | - |
+| 1^2  | ![](/data/imgs/positions_1.gif)  | ![](/data/imgs/positions_1_mask.gif)  |
+| 2^2  | ![](/data/imgs/positions_2.gif)  | ![](/data/imgs/positions_2_mask.gif)  |
+| 4^2  | ![](/data/imgs/positions_4.gif)  | ![](/data/imgs/positions_4_mask.gif)  |
+| 8^2  | ![](/data/imgs/positions_8.gif)  | ![](/data/imgs/positions_8_mask.gif)  |
+| 16^2 | ![](/data/imgs/positions_16.gif) | ![](/data/imgs/positions_16_mask.gif) |
 
 
 ## Backgrounds
 
  | Style \ number | single | finite | infinite |
  |---|---|---|---|
- | constant | - | - | - |
- | random pixel | - | - | - |
- | random structured | - | - |
+ | constant          | ![](/data/imgs/bg_constant_color_1.gif) |![](/data/imgs/bg_constant_color_8.gif) | ![](/data/imgs/bg_constant_color_inf.gif) |
+ | random pixel      | ![](/data/imgs/bg_random_pixel_1.gif)   |![](/data/imgs/bg_random_pixel_8.gif)   | ![](/data/imgs/bg_random_pixel_inf.gif)   |
+ | random structured | ![](/data/imgs/bg_random_function_1.gif)   |![](/data/imgs/bg_random_function_8.gif)   | ![](/data/imgs/bg_random_function_inf.gif)   |
  
 
 # Notes
