@@ -23,9 +23,9 @@
 
  | Style \ number | single | finite (n=8) | infinite |
  |---|---|---|---|
- | constant          | ![](/data/imgs/bg_constant_color_1.gif) |![](/data/imgs/bg_constant_color_8.gif) | ![](/data/imgs/bg_constant_color_inf.gif) |
- | random pixel      | ![](/data/imgs/bg_random_pixel_1.gif)   |![](/data/imgs/bg_random_pixel_8.gif)   | ![](/data/imgs/bg_random_pixel_inf.gif)   |
- | random structured | ![](/data/imgs/bg_random_function_1.gif)   |![](/data/imgs/bg_random_function_8.gif)   | ![](/data/imgs/bg_random_function_inf.gif)   |
+ | constant          | ![](/data/imgs/bg_constant_color_1.gif) |![](/data/imgs/bg_constant_color_4.gif) | ![](/data/imgs/bg_constant_color_inf.gif) |
+ | random pixel      | ![](/data/imgs/bg_random_pixel_1.gif)   |![](/data/imgs/bg_random_pixel_4.gif)   | ![](/data/imgs/bg_random_pixel_inf.gif)   |
+ | random structured | ![](/data/imgs/bg_random_function_1.gif)   |![](/data/imgs/bg_random_function_4.gif)   | ![](/data/imgs/bg_random_function_inf.gif)   |
  
 
 # Notes
