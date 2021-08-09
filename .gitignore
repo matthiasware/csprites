@@ -1,0 +1,13 @@
+*
+
+!*/
+#!**/*
+!*.gif
+!*.png
+!.gitignore
+!*.py
+!*.ipynb
+
+.ipynb_checkpoints/
+.pyc
+__pycache__
