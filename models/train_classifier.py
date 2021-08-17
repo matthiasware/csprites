@@ -302,7 +302,7 @@ if __name__ == "__main__":
             'backbone': "ResNet-18",
             'optimizer': 'adam',
             'optimizer_args': {
-                'lr': 0.001,
+                'lr': 0.0005,
                 'weight_decay': 1e-6
             },
             'p_ckpts': "ckpts",
