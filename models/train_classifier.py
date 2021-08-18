@@ -87,7 +87,7 @@ def main(config):
         model = torch.nn.DataParallel(model)
     model = model.to(device)
     #
-    optimizer = get_optimizer(config.optimizer, model, config.optimizer_args)
+    optimizer = get_optimizer(config.optimizer, model.parameters(), config.optimizer_args)
     criterion = nn.CrossEntropyLoss()
 
     # TRAIN
@@ -288,8 +288,8 @@ if __name__ == "__main__":
     for target in ["shape", "scale", "color", "angle", "py", "px"]:
         config = {
             'device': 'cuda',
-            'cuda_visible_devices': '0,1',
-            'p_data': "/mnt/data/csprites/single_csprites_64x64_n7_c16_a16_p8_s4_bg_inf_random_function_458752",
+            'cuda_visible_devices': '0',
+            'p_data': '/mnt/data/csprites-models/single_csprites_64x64_n7_c512_a32_p10_s3_bg_inf_random_function_100000',
             'target_variable': target,
             'batch_size': 1024,
             'num_workers': 6,
