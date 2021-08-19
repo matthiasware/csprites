@@ -198,6 +198,7 @@ def main(config):
     plt.yscale('log')
     plt.legend()
     plt.savefig(p_experiment / "loss.png")
+    plt.close()
 
     # plot accs
     plt.plot(stats.train.epoch, stats.train.acc, label="train")
@@ -205,6 +206,7 @@ def main(config):
     plt.yscale('log')
     plt.legend()
     plt.savefig(p_experiment / "acc.png")
+    plt.close()
 
     with open(p_experiment / config.p_config, "wb") as file:
         pickle.dump(config, file)
@@ -289,11 +291,11 @@ if __name__ == "__main__":
         config = {
             'device': 'cuda',
             'cuda_visible_devices': '0',
-            'p_data': '/mnt/data/csprites-models/single_csprites_64x64_n7_c512_a32_p10_s3_bg_inf_random_function_100000',
+            'p_data': '/mnt/data/csprites/single_csprites_64x64_n7_c128_a32_p10_s3_bg_inf_random_function_100000',
             'target_variable': target,
             'batch_size': 1024,
             'num_workers': 6,
-            'num_epochs': 10,
+            'num_epochs': 30,
             'freqs': {
                 'ckpt': 10,         # epochs
                 'eval': 1,          # epochs

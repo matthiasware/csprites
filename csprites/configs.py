@@ -38,6 +38,7 @@ be_config = {
     'p_segs': "segs",
     'p_config': 'config.pkl',
     'n_samples_min': 1,
-    'n_samples_max': 1e7
+    'n_samples_max': 1e7,
+    'cmap_colors': 'nipy_spectral',
 }
 be_config = DottedDict(be_config)

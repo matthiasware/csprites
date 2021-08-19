@@ -32,8 +32,8 @@ def get_cmap(n_colors, name='Spectral'):
     return plt.cm.get_cmap(name, n_colors)
 
 
-def get_colors(n_colors):
-    cmap = get_cmap(n_colors)
+def get_colors(n_colors, cmap="nipy_spectral"):
+    cmap = get_cmap(n_colors, name=cmap)
     colors = [cmap(i) for i in range(n_colors)]
     colors = [(np.array(c[:3]) * 255).astype(np.uint8) for c in colors]
     return colors
