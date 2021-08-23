@@ -1,11 +1,16 @@
-from flask import Flask, render_template, request
+from time import process_time
+from dotted_dict import DottedDict
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import utils
 import math
-
-
+import threading
+import time
 
 app = Flask(__name__)
+app.secret_key = "super secret key"
 
+finished = False
+ds_perc = 0.0
 
 @app.route('/')
 def home():
@@ -13,8 +18,7 @@ def home():
 
 @app.route('/select1', methods=['GET', 'POST'])
 def select1():
-    process_params = utils.process_params
-    possible_scales = utils.possible_scales
+    process_params, possible_scales = utils.get_initial_params()
     if request.method == 'POST':
         # Image Size
         value_slider_size = int(request.form.get("slider_img_size"))
@@ -27,7 +31,7 @@ def select1():
             if x is not None:
                 tmp.append(x)
         process_params.selected_shapes = tmp
-
+        
         # Colors
         value_slider_colors = int(float(request.form.get("slider_colors")))
         process_params.colors = value_slider_colors
@@ -52,6 +56,7 @@ def select1():
         # Filling
         value_slider_min_fill = float(request.form.get("slider_min_fillrate"))
         process_params.min_fillrate = value_slider_min_fill
+    
         value_slider_max_fill = float(request.form.get("slider_max_fillrate"))
         process_params.max_fillrate = value_slider_max_fill
 
@@ -73,17 +78,58 @@ def select1():
 
         # Targets
         value_bbox = request.form.get("switch_bbox")=='0'
-        value_seg = request.form.get("switch_seg")=='0'
         process_params.target_bbox = value_bbox
+
+        value_seg = request.form.get("switch_seg")=='0'
         process_params.target_seg = value_seg
         
         # n_states, n_masks, memory usage
         process_params = utils.recalculate_params(process_params)
 
-        utils.create_dataset(process_params)
+        # save session parameters
+        for k in process_params:
+            session[k] = process_params[k]
+        return redirect(url_for('create_dataset'))
+    else:
+        return render_template('select1.html', params = process_params, pos_scales=possible_scales)
 
-    return render_template('select1.html', params = process_params, pos_scales=possible_scales)
 
+@app.route('/create_ds', methods=['GET', 'POST'])
+def create_dataset():
+    process_params = DottedDict({k : session[k] for k in session})
+
+    # ID from timestamp
+    request_id = str(time.time()).replace('.','')
+
+    global finished
+    global ds_perc
+    finished = False
+    ds_perc = 0.0
+    th = threading.Thread(target=thread_func, args=(process_params,request_id))
+    th.start()
+
+    return render_template('create_ds.html', request_id=request_id)
+
+
+def thread_func(process_params, request_id):
+    global finished
+    global ds_perc
+    try:
+        status = utils.create_dataset(process_params, request_id)
+    except:
+        print('Error: Could not create dataset!')
+    finished = True
+    print(finished)
+
+@app.route('/status')
+def thread_status():
+    global finished
+    global ds_perc
+    state_dict = {
+        'status' : 'finished' if finished else 'running',
+        'perc' : ds_perc
+    }
+    return jsonify(state_dict)
 
 if __name__ == '__main__':
     app.run(debug=True)
