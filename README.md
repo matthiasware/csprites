@@ -29,6 +29,13 @@
  
 
 # Notes
+## Run App
+```
+set FLASK_APP=main_app
+set FLASK_ENV=development
+flask run
+```
+
 ## Todo
 todo:
 - Add multi sprites support
