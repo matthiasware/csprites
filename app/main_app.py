@@ -1,23 +1,28 @@
 from time import process_time
 from dotted_dict import DottedDict
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 import utils
 import math
 import threading
 import time
+import os
+import io
+import shutil
 
+MAX_AGE = 500 # maximum age of files in seconds
 app = Flask(__name__)
 app.secret_key = "super secret key"
 
-finished = False
-ds_perc = 0.0
+ds_creator = utils.DatasetCreator()
 
 @app.route('/')
 def home():
+    clean_requests()
     return render_template('home.html')
 
 @app.route('/select1', methods=['GET', 'POST'])
 def select1():
+    clean_requests()
     process_params, possible_scales = utils.get_initial_params()
     if request.method == 'POST':
         # Image Size
@@ -99,37 +104,53 @@ def create_dataset():
     process_params = DottedDict({k : session[k] for k in session})
 
     # ID from timestamp
-    request_id = str(time.time()).replace('.','')
-
-    global finished
-    global ds_perc
-    finished = False
-    ds_perc = 0.0
+    global ds_creator
+    ds_creator.status = 'Initialization'
+    request_id = str(time.time()).replace('.','-')
     th = threading.Thread(target=thread_func, args=(process_params,request_id))
     th.start()
 
     return render_template('create_ds.html', request_id=request_id)
 
-
 def thread_func(process_params, request_id):
-    global finished
-    global ds_perc
+    global ds_creator
     try:
-        status = utils.create_dataset(process_params, request_id)
+        ds_creator.create_dataset(process_params, request_id)
     except:
         print('Error: Could not create dataset!')
-    finished = True
-    print(finished)
 
 @app.route('/status')
 def thread_status():
-    global finished
-    global ds_perc
+    global ds_creator
     state_dict = {
-        'status' : 'finished' if finished else 'running',
-        'perc' : ds_perc
+        'status' : ds_creator.status
     }
     return jsonify(state_dict)
+
+@app.route('/<request_id>/download')
+def ds_download(request_id):
+    p = os.path.join('static','requests', request_id)
+    name = [x for x in os.listdir(p) if x.endswith('.zip')][0]
+    p_file = os.path.join(p, name)
+
+    # read file as byte stream
+    return_data = io.BytesIO()
+    with open(p_file, 'rb') as fo:
+        return_data.write(fo.read())
+    # (after writing, cursor will be at last byte, so move it to start)
+    return_data.seek(0)
+    shutil.rmtree(p)
+
+    return send_file(return_data, mimetype='application/zip', as_attachment=True, attachment_filename=name)
+
+def clean_requests():
+    t_now = time.time()
+    p = os.path.join('static', 'requests')
+    l = [(float(x.replace('-','.')), os.path.join(p,x)) for x in os.listdir(p)]
+    for x, p in l:
+        diff = t_now-x
+        if diff > MAX_AGE:
+            shutil.rmtree(p)
 
 if __name__ == '__main__':
     app.run(debug=True)
