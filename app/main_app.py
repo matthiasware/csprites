@@ -13,7 +13,7 @@ MAX_AGE = 500 # maximum age of files in seconds
 app = Flask(__name__)
 app.secret_key = "super secret key"
 
-ds_creator = utils.DatasetCreator()
+creator_list = []
 
 @app.route('/')
 def home():
@@ -98,22 +98,29 @@ def select1():
     else:
         return render_template('select1.html', params = process_params, pos_scales=possible_scales)
 
-
 @app.route('/create_ds', methods=['GET', 'POST'])
 def create_dataset():
     process_params = DottedDict({k : session[k] for k in session})
 
     # ID from timestamp
-    global ds_creator
-    ds_creator.status = 'Initialization'
-    request_id = str(time.time()).replace('.','-')
-    th = threading.Thread(target=thread_func, args=(process_params,request_id))
-    th.start()
+    ds_creator = utils.DatasetCreator()
 
-    return render_template('create_ds.html', request_id=request_id)
+    global creator_list
+    creator_list = []
+    creator_list.append(ds_creator)
+
+    if ds_creator.status == 'Finished':
+        request_id = str(time.time()).replace('.','-')
+        th = threading.Thread(target=thread_func, args=(process_params,request_id))
+        th.start()
+
+        return render_template('create_ds.html', request_id=request_id)
+    else:
+        redirect(url_for('create_dataset'))
 
 def thread_func(process_params, request_id):
-    global ds_creator
+    global creator_list
+    ds_creator = creator_list[-1]
     try:
         ds_creator.create_dataset(process_params, request_id)
     except:
@@ -121,7 +128,8 @@ def thread_func(process_params, request_id):
 
 @app.route('/status')
 def thread_status():
-    global ds_creator
+    global creator_list
+    ds_creator = creator_list[-1]
     state_dict = {
         'status' : ds_creator.status
     }
@@ -146,11 +154,12 @@ def ds_download(request_id):
 def clean_requests():
     t_now = time.time()
     p = os.path.join('static', 'requests')
-    l = [(float(x.replace('-','.')), os.path.join(p,x)) for x in os.listdir(p)]
-    for x, p in l:
-        diff = t_now-x
-        if diff > MAX_AGE:
-            shutil.rmtree(p)
+    if os.path.exists(p):
+        l = [(float(x.replace('-','.')), os.path.join(p,x)) for x in os.listdir(p)]
+        for x, p in l:
+            diff = t_now-x
+            if diff > MAX_AGE:
+                shutil.rmtree(p)
 
 if __name__ == '__main__':
     app.run(debug=True)

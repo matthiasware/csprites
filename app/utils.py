@@ -37,7 +37,7 @@ shape_dict = {n : SHAPES[i] for i,n in enumerate(base_config['all_shape_names'])
 
 class DatasetCreator():
     def __init__(self):
-        self.status = 'Initialization'
+        self.status = 'Finished'
         
     def create_dataset(self, p, request_id):
         self.status = 'Initialization'
