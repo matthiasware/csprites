@@ -236,7 +236,7 @@ class DatasetCreator():
         #
         start = timeit.default_timer()
         for sample_idx, (shape_idx, scale_idx, color_idx, angle_idx, py_idx, px_idx) in enumerate(class_targets):
-            self.status = f'Creating Dataset : {round(sample_idx/len(class_targets),2)}%'
+            self.status = f'Creating Dataset : {100*round(sample_idx/len(class_targets),4)}%'
             shape = shapes[shape_idx]
             size = shape_sizes[shape][scale_idx]
             angle = angles[angle_idx]
@@ -299,7 +299,7 @@ class DatasetCreator():
                 break
 
         elapsed  = timeit.default_timer() - start
-        print("{:.3f}".format(elapsed))
+        #print("{:.3f}".format(elapsed))
 
         # Train/Testsplit
         self.status = 'Creating Train- and Testsplit'
@@ -351,7 +351,6 @@ class DatasetCreator():
         shutil.rmtree(p_data)
 
         self.status = 'Finished'
-
 
 def create_config_dict(p):
     # TODO: translate process params into config dict
