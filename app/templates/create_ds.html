@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+
+{% block content %}
+    <h1>{% block title %} Generating Dataset {% endblock %}</h1>
+    <label id="lbl_status"><b>Status: </b>Creating</label>
+
+    <script type="text/javascript">
+        function checker(){
+            var finished = false;
+            var progress = 0.0;
+            fetch("{{ url_for('thread_status') }}")
+            .then(
+                response => response.json())
+            .then(
+                data => {
+                    finished = (data.status == 'Finished');
+                    var lbl_status = document.getElementById('lbl_status');
+                    lbl_status.innerHTML = data.status
+                    if (!finished){
+                        setTimeout(checker, 100);
+                    }else{
+                        window.location.replace("{{url_for('ds_download', request_id=request_id)}}");
+                    }
+                }
+            );
+        }
+        checker();
+    </script>
+{% endblock %}

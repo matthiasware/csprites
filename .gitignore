@@ -7,6 +7,10 @@
 !.gitignore
 !*.py
 !*.ipynb
+!*.js
+!*.html
+!*.css
+!*.json
 
 .ipynb_checkpoints/
 .pyc
