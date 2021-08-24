@@ -29,7 +29,7 @@ from csprites.backgrounds import get_bg_func
 from csprites.utils import MeanStdTracker, shape_sizes_to_html, masks_to_html_animation
 
 
-with open('static/base_config.json', 'r') as fp:
+with open('/home/kahlmeyer94/csprites/app/static/base_config.json', 'r') as fp:
     base_config = json.load(fp)
 base_config = DottedDict(base_config)
 shape_dict = {n : SHAPES[i] for i,n in enumerate(base_config['all_shape_names'])}
@@ -38,12 +38,12 @@ shape_dict = {n : SHAPES[i] for i,n in enumerate(base_config['all_shape_names'])
 class DatasetCreator():
     def __init__(self):
         self.status = 'Finished'
-        
+
     def create_dataset(self, p, request_id):
         self.status = 'Initialization'
 
         conf = create_config_dict(p)
-        p_dir = f'static/requests/{request_id}'
+        p_dir = f'/home/kahlmeyer94/csprites/app/static/requests/{request_id}'
 
         if not os.path.exists(p_dir):
             os.makedirs(p_dir)
@@ -62,7 +62,7 @@ class DatasetCreator():
                 assert name in be_config.all_shape_names
             n_shapes = len(shape_names)
 
-            # colors 
+            # colors
             n_colors = config['n_colors']
             assert be_config.n_colors_min <= n_colors
             assert n_colors <= be_config.n_colors_max
@@ -98,7 +98,7 @@ class DatasetCreator():
             min_mask_fill_rate = config["min_mask_fill_rate"]
             assert 0 < min_mask_fill_rate < 1
 
-            max_mask_fill_rate = config["max_mask_fill_rate"]           
+            max_mask_fill_rate = config["max_mask_fill_rate"]
             assert min_mask_fill_rate <= max_mask_fill_rate
             assert max_mask_fill_rate < 1
 
@@ -251,7 +251,7 @@ class DatasetCreator():
             #
             assert h_mask % 2 == 1
             assert w_mask % 2 == 1
-            
+
             #mask = pad_mask(mask, max_mask_size)
             if target_bbox:
                 # corners: (upper left, lower right)
@@ -265,7 +265,7 @@ class DatasetCreator():
                 #
                 assert w_shape % 2 == 1
                 assert h_shape % 2 == 1
-                
+
                 y0 = max(0, py - h_shape // 2 - 1)
                 x0 = max(0, px - w_shape // 2 - 1)
                 y1 = min(py + h_shape // 2 + 1, img_size)
@@ -294,10 +294,10 @@ class DatasetCreator():
             Image.fromarray(img).save(p_img)
             tracker.add(img/255)
             imgs.append(img_name)
-            
+
             if debug and sample_idx > n_debug:
                 break
-                    
+
         elapsed  = timeit.default_timer() - start
         #print("{:.3f}".format(elapsed))
 
@@ -391,9 +391,9 @@ def create_config_dict(p):
     ret["target_bbox"] = target_bbox
     ret["target_segm"] = target_segm
 
-    ret["min_mask_fill_rate"] = p.min_fillrate 
-    ret["max_mask_fill_rate"] = p.max_fillrate  
-    
+    ret["min_mask_fill_rate"] = p.min_fillrate
+    ret["max_mask_fill_rate"] = p.max_fillrate
+
     # TODO: Single/Multiple instance
     ret['nmb_instances'] = 'single'
     return ret
@@ -414,7 +414,7 @@ def recalculate_params(p, init=False):
     except:
         p['max_scales'] = 0
         p['scales'] = p.max_scales
-    
+
     # init number of positions
     try:
         p.max_positions = get_max_positions((2**p.img_size), max_mask_size)

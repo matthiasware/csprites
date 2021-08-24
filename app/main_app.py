@@ -36,7 +36,7 @@ def select1():
             if x is not None:
                 tmp.append(x)
         process_params.selected_shapes = tmp
-        
+
         # Colors
         value_slider_colors = int(float(request.form.get("slider_colors")))
         process_params.colors = value_slider_colors
@@ -61,7 +61,7 @@ def select1():
         # Filling
         value_slider_min_fill = float(request.form.get("slider_min_fillrate"))
         process_params.min_fillrate = value_slider_min_fill
-    
+
         value_slider_max_fill = float(request.form.get("slider_max_fillrate"))
         process_params.max_fillrate = value_slider_max_fill
 
@@ -76,7 +76,7 @@ def select1():
         # Number of Samples
         value_n_samples = int(request.form.get("nmb_samples"))
         process_params.n_samples = value_n_samples
-        
+
         # Dataset percentage
         value_test_perc = float(request.form.get("slider_test_perc"))
         process_params.test_perc = value_test_perc
@@ -87,7 +87,7 @@ def select1():
 
         value_seg = request.form.get("switch_seg")=='0'
         process_params.target_seg = value_seg
-        
+
         # n_states, n_masks, memory usage
         process_params = utils.recalculate_params(process_params)
 
@@ -137,7 +137,7 @@ def thread_status():
 
 @app.route('/<request_id>/download')
 def ds_download(request_id):
-    p = os.path.join('static','requests', request_id)
+    p = os.path.join('/home/kahlmeyer94/csprites/app', 'static','requests', request_id)
     name = [x for x in os.listdir(p) if x.endswith('.zip')][0]
     p_file = os.path.join(p, name)
 
@@ -153,7 +153,7 @@ def ds_download(request_id):
 
 def clean_requests():
     t_now = time.time()
-    p = os.path.join('static', 'requests')
+    p = os.path.join('/home/kahlmeyer94/csprites/app', 'static','requests')
     if os.path.exists(p):
         l = [(float(x.replace('-','.')), os.path.join(p,x)) for x in os.listdir(p)]
         for x, p in l:
