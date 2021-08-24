@@ -236,7 +236,7 @@ class DatasetCreator():
         #
         start = timeit.default_timer()
         for sample_idx, (shape_idx, scale_idx, color_idx, angle_idx, py_idx, px_idx) in enumerate(class_targets):
-            self.status = f'Creating Dataset : {100*round(sample_idx/len(class_targets),4)}%'
+            self.status = f'Creating Dataset : {round(100*sample_idx/len(class_targets),4)}%'
             shape = shapes[shape_idx]
             size = shape_sizes[shape][scale_idx]
             angle = angles[angle_idx]
