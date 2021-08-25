@@ -8,12 +8,13 @@ import time
 import os
 import io
 import shutil
+from multiprocessing import Process
 
 MAX_AGE = 500 # maximum age of files in seconds
 app = Flask(__name__)
 app.secret_key = "super secret key"
 
-creator_list = []
+proc_list = []
 
 @app.route('/')
 def home():
@@ -94,11 +95,15 @@ def select1():
         # save session parameters
         for k in process_params:
             session[k] = process_params[k]
-        #return redirect(url_for('create_dataset'))
 
-        ds_creator = utils.DatasetCreator()
+
         request_id = str(time.time()).replace('.','-')
-        ds_creator.create_dataset(process_params, request_id)
+        proc = Process(target=create_dataset, args=(process_params, request_id))
+        proc.start()
+
+        global proc_list
+        proc_list.append((request_id,proc))
+
         return redirect(url_for('ds_download', request_id=request_id))
 
     else:
@@ -106,6 +111,15 @@ def select1():
 
 @app.route('/<request_id>/download')
 def ds_download(request_id):
+
+    global proc_list
+    # find process and join
+    for i,(req_id,proc) in enumerate(proc_list):
+        if req_id==request_id:
+            proc_list.pop(i)
+            proc.join()
+            break
+
     p = os.path.join('/home/kahlmeyer94/csprites/app', 'static','requests', request_id)
     name = [x for x in os.listdir(p) if x.endswith('.zip')][0]
     p_file = os.path.join(p, name)
@@ -129,6 +143,11 @@ def clean_requests():
             diff = t_now-x
             if diff > MAX_AGE:
                 shutil.rmtree(p, ignore_errors=True)
+
+def create_dataset(process_params, request_id):
+    ds_creator = utils.DatasetCreator()
+    ds_creator.create_dataset(process_params, request_id)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
