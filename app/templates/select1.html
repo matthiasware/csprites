@@ -4,8 +4,8 @@
 {% block content %}
     <h1>{% block title %} Config1 {% endblock %}</h1>
     <!-- JavaScript functions -->
-    <script type="text/javascript"> 
-        let possible_scales = {{pos_scales|tojson}}; 
+    <script type="text/javascript">
+        let possible_scales = {{pos_scales|tojson}};
         let max_memory = {{params.max_mem_usage}};
     </script>
     <script type="text/javascript" src='../static/js/js_functions.js'> </script>
@@ -18,13 +18,13 @@
                 <div class='row'>
                     <div class='col-3'>
                         <label id= "lbl_slider1" for="slider1" class="form-label"><b>Image Size: </b>{{2**params.img_size|int}}</label>
-                        <input type="range" 
-                        class="form-range" 
-                        min="{{params.min_img_size}}" 
-                        max="{{params.max_img_size}}" 
-                        step="1" 
-                        oninput = "updateImageSize('lbl_slider1', this.value, '<b>Image Size: </b>')" 
-                        value="{{params.img_size}}" 
+                        <input type="range"
+                        class="form-range"
+                        min="{{params.min_img_size}}"
+                        max="{{params.max_img_size}}"
+                        step="1"
+                        oninput = "updateImageSize('lbl_slider1', this.value, '<b>Image Size: </b>')"
+                        value="{{params.img_size}}"
                         name="slider_img_size"
                         id="slider1">
                     </div>
@@ -52,13 +52,13 @@
                 <div class="row">
                     <div class="col-3">
                         <label id="lbl_slider3" for="slider3" class="form-label"><b>Colors: </b>{{params.colors}}</label>
-                        <input type="range" 
-                        class="form-range" 
-                        min="1" 
-                        max="{{params.max_colors}}" 
-                        step="1" 
+                        <input type="range"
+                        class="form-range"
+                        min="1"
+                        max="{{params.max_colors}}"
+                        step="1"
                         oninput = "updateColormap('lbl_slider3', this.value, '<b>Colors: </b>')"
-                        value="{{params.colors}}" 
+                        value="{{params.colors}}"
                         name="slider_colors"
                         id="slider3">
                     </div>
@@ -71,13 +71,13 @@
                 <div class="row">
                     <div class="col-3">
                         <label id="lbl_slider4" for="slider4" class="form-label"><b>Rotations: </b>{{params.nmb_rotations}}</label>
-                        <input type="range" 
-                        class="form-range" 
-                        min="{{params.min_rotations}}" 
-                        max="{{params.max_rotations}}" 
-                        step="1" 
+                        <input type="range"
+                        class="form-range"
+                        min="{{params.min_rotations}}"
+                        max="{{params.max_rotations}}"
+                        step="1"
                         oninput = "updateRotation('lbl_slider4', this.value, '<b>Rotations: </b>')"
-                        value="{{params.nmb_rotations}}" 
+                        value="{{params.nmb_rotations}}"
                         name="slider_rotations"
                         id="slider4">
                     </div>
@@ -86,9 +86,9 @@
                     </div>
                 </div>
 
-                <!-- Background -->   
+                <!-- Background -->
                 <div class="row">
-                    <div class="col-2">     
+                    <div class="col-2">
                         <label class="form-label"><b>Background: </b></label>
                         <label>Background Type: </label>
                         <select class="form-select" aria-label="Default select example" name='bg_selection'>
@@ -131,13 +131,13 @@
                     <div class="col-3">
                         <label id= "lbl_slider5" for="slider5" class="form-label"><b>Minimum Fillrate: </b>{{params.min_fillrate}}</label>
                         <div>
-                            <input type="range" 
-                            class="form-range" 
-                            min="0" 
-                            max="1" 
-                            step="0.1" 
+                            <input type="range"
+                            class="form-range"
+                            min="0"
+                            max="1"
+                            step="0.1"
                             oninput = "updateFillrate('lbl_slider5', this.value, '<b>Minimum Fillrate: </b>', 0);updateScale()"
-                            value="{{params.min_fillrate}}" 
+                            value="{{params.min_fillrate}}"
                             name="slider_min_fillrate"
                             id="slider5">
                         </div>
@@ -147,13 +147,13 @@
                     <div class="col-3">
                         <label id= "lbl_slider6" for="slider6" class="form-label"><b>Maximum Fillrate: </b>{{params.max_fillrate}}</label>
                         <div>
-                            <input type="range" 
-                            class="form-range" 
-                            min="0" 
-                            max="1" 
-                            step="0.1" 
+                            <input type="range"
+                            class="form-range"
+                            min="0"
+                            max="1"
+                            step="0.1"
                             oninput = "updateFillrate('lbl_slider6', this.value, '<b>Maximum Fillrate: </b>', 1);updateScale()"
-                            value="{{params.max_fillrate}}" 
+                            value="{{params.max_fillrate}}"
                             name="slider_max_fillrate"
                             id="slider6">
                         </div>
@@ -164,13 +164,13 @@
                 <div class='row'>
                     <div class='col-3'>
                         <label id= "lbl_slider_pos" for="slider_pos" class="form-label"><b>Positions: </b>{{params.positions}}</label>
-                        <input type="range" 
-                        class="form-range" 
-                        min="{{params.min_positions}}" 
-                        max="{{params.max_positions}}" 
-                        step="1" 
-                        oninput = "updatePosition()" 
-                        value="{{params.positions}}" 
+                        <input type="range"
+                        class="form-range"
+                        min="{{params.min_positions}}"
+                        max="{{params.max_positions}}"
+                        step="1"
+                        oninput = "updatePosition()"
+                        value="{{params.positions}}"
                         name="slider_pos"
                         id="slider_pos">
                     </div>
@@ -180,13 +180,13 @@
                 <div class='row'>
                     <div class='col-3'>
                         <label id= "lbl_slider_scale" for="slider_scale" class="form-label"><b>Scales: </b>{{params.scales}}</label>
-                        <input type="range" 
-                        class="form-range" 
-                        min="{{params.min_scales}}" 
-                        max="{{params.max_scales}}" 
-                        step="1" 
-                        oninput = "updateScale()" 
-                        value="{{params.scales}}" 
+                        <input type="range"
+                        class="form-range"
+                        min="{{params.min_scales}}"
+                        max="{{params.max_scales}}"
+                        step="1"
+                        oninput = "updateScale()"
+                        value="{{params.scales}}"
                         name="slider_scale"
                         id="slider_scale">
                     </div>
@@ -216,14 +216,14 @@
                                 <input class="form-check-input" type="checkbox" id="switch_seg" name="switch_seg" value="0" checked>
                             {% else %}
                                 <input class="form-check-input" type="checkbox" id="switch_seg" name="switch_seg" value="0">
-                            {% endif %}                            
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
 
                 <!-- Size of Dataset -->
-            
+
                 <!-- Status information-->
                 <div class='row'>
                     <div class='col-3'>
@@ -234,7 +234,7 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-3"> 
+                    <div class="col-3">
                         <label class="form-label"><b>Number of Samples [selected]:</b></label>
                     </div>
                     <div class='col-2'>
@@ -253,17 +253,17 @@
                 </div>
                 <div class="row">
                     <div class="col-3">
-                        <label class="form-label"><b>Percentage of Testdata:</b></label> 
+                        <label class="form-label"><b>Percentage of Testdata:</b></label>
                     </div>
                     <div class="col-2">
-                        <label id="lbl_test_perc" class="form-label">{{params.test_perc}}</label> 
-                        <input type="range" 
-                        class="form-range" 
-                        min="0" 
-                        max="1" 
-                        step="0.01" 
-                        oninput = "updateSlider('lbl_test_perc', this.value, '')" 
-                        value="{{params.test_perc}}" 
+                        <label id="lbl_test_perc" class="form-label">{{params.test_perc}}</label>
+                        <input type="range"
+                        class="form-range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        oninput = "updateSlider('lbl_test_perc', this.value, '')"
+                        value="{{params.test_perc}}"
                         name="slider_test_perc"
                         id="slider_test_perc">
                     </div>
@@ -280,7 +280,7 @@
                 <!-- Save Button -->
                 <div class="row">
                     <div class="col-3">
-                        <button id="btn_submit" type="submit" href="{{url_for('create_dataset')}}">Save Configs</button>
+                        <button id="btn_submit" type="submit">Create Dataset</button>
                     </div>
                 </div>
 
@@ -294,5 +294,5 @@
             </div>
         </form>
     </div>
-    
+
 {% endblock %}

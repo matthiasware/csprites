@@ -94,46 +94,15 @@ def select1():
         # save session parameters
         for k in process_params:
             session[k] = process_params[k]
-        return redirect(url_for('create_dataset'))
+        #return redirect(url_for('create_dataset'))
+
+        ds_creator = utils.DatasetCreator()
+        request_id = str(time.time()).replace('.','-')
+        ds_creator.create_dataset(process_params, request_id)
+        return redirect(url_for('ds_download', request_id=request_id))
+
     else:
         return render_template('select1.html', params = process_params, pos_scales=possible_scales)
-
-@app.route('/create_ds', methods=['GET', 'POST'])
-def create_dataset():
-    process_params = DottedDict({k : session[k] for k in session})
-
-    # ID from timestamp
-    ds_creator = utils.DatasetCreator()
-
-    global creator_list
-    creator_list = []
-    creator_list.append(ds_creator)
-
-    if ds_creator.status == 'Finished':
-        request_id = str(time.time()).replace('.','-')
-        th = threading.Thread(target=thread_func, args=(process_params,request_id))
-        th.start()
-
-        return render_template('create_ds.html', request_id=request_id)
-    else:
-        redirect(url_for('create_dataset'))
-
-def thread_func(process_params, request_id):
-    global creator_list
-    ds_creator = creator_list[-1]
-    try:
-        ds_creator.create_dataset(process_params, request_id)
-    except:
-        print('Error: Could not create dataset!')
-
-@app.route('/status')
-def thread_status():
-    global creator_list
-    ds_creator = creator_list[-1]
-    state_dict = {
-        'status' : ds_creator.status
-    }
-    return jsonify(state_dict)
 
 @app.route('/<request_id>/download')
 def ds_download(request_id):
@@ -147,7 +116,7 @@ def ds_download(request_id):
         return_data.write(fo.read())
     # (after writing, cursor will be at last byte, so move it to start)
     return_data.seek(0)
-    shutil.rmtree(p)
+    shutil.rmtree(p, ignore_errors=True)
 
     return send_file(return_data, mimetype='application/zip', as_attachment=True, attachment_filename=name)
 
@@ -159,7 +128,7 @@ def clean_requests():
         for x, p in l:
             diff = t_now-x
             if diff > MAX_AGE:
-                shutil.rmtree(p)
+                shutil.rmtree(p, ignore_errors=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
