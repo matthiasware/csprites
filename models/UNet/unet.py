@@ -65,7 +65,7 @@ class UpBlock(nn.Module):
     def __init__(self, c_down, c_out, n_blocks=1):
         super().__init__()
         #
-        assert c_out * 2 == c_down
+        # assert c_out * 2 == c_down
         #
         self.up = nn.ConvTranspose2d(
             c_down, c_down // 2, kernel_size=2, stride=2
@@ -81,7 +81,7 @@ class UpBlock(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, chs_head, chs_up, n_conv_blocks=2):
+    def __init__(self, chs_head, chs_up, n_conv_blocks=2, activation_last="relu"):
         super().__init__()
         self.up_blocks = nn.ModuleList()
         for idx in range(0, len(chs_up) - 1, 1):
@@ -89,7 +89,13 @@ class Decoder(nn.Module):
                 UpBlock(chs_up[idx], chs_up[idx + 1], n_conv_blocks)
             )
         self.head = BasicConvBlock(
-            chs_head[0], chs_head[1], n_conv_blocks, True, True)
+            chs_head[0], chs_head[1], n_conv_blocks, True, False)
+        if activation_last == "relu":
+            self.last = torch.nn.ReLU(inplace=True)
+        elif activation_last == "sigmoid":
+            self.last = torch.nn.Sigmoid()
+        else:
+            raise NotImplementedError("Activation: {}".format(activation_last))
 
     def forward(self, xx):
         x = xx[0]
@@ -97,14 +103,15 @@ class Decoder(nn.Module):
             x_side = xx[idx + 1]
             x = self.up_blocks[idx](x, x_side)
         x = self.head(x)
+        x = self.last(x)
         return x
 
 
 class UNet(nn.Module):
-    def __init__(self, chs_tail, chs_down, chs_up, chs_head, n_conv_blocks):
+    def __init__(self, chs_tail, chs_down, chs_up, chs_head, n_conv_blocks, activation_last="relu"):
         super().__init__()
         self.encoder = Encoder(chs_tail, chs_down, n_conv_blocks)
-        self.decoder = Decoder(chs_head, chs_up, n_conv_blocks)
+        self.decoder = Decoder(chs_head, chs_up, n_conv_blocks, activation_last)
 
     def forward(self, x):
         xx = self.encoder(x)
