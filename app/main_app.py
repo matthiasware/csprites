@@ -8,12 +8,13 @@ import time
 import os
 import io
 import shutil
+from multiprocessing import Process
 
 MAX_AGE = 500 # maximum age of files in seconds
 app = Flask(__name__)
 app.secret_key = "super secret key"
 
-creator_list = []
+proc_list = []
 
 @app.route('/')
 def home():
@@ -36,7 +37,7 @@ def select1():
             if x is not None:
                 tmp.append(x)
         process_params.selected_shapes = tmp
-        
+
         # Colors
         value_slider_colors = int(float(request.form.get("slider_colors")))
         process_params.colors = value_slider_colors
@@ -61,7 +62,7 @@ def select1():
         # Filling
         value_slider_min_fill = float(request.form.get("slider_min_fillrate"))
         process_params.min_fillrate = value_slider_min_fill
-    
+
         value_slider_max_fill = float(request.form.get("slider_max_fillrate"))
         process_params.max_fillrate = value_slider_max_fill
 
@@ -76,7 +77,7 @@ def select1():
         # Number of Samples
         value_n_samples = int(request.form.get("nmb_samples"))
         process_params.n_samples = value_n_samples
-        
+
         # Dataset percentage
         value_test_perc = float(request.form.get("slider_test_perc"))
         process_params.test_perc = value_test_perc
@@ -87,57 +88,39 @@ def select1():
 
         value_seg = request.form.get("switch_seg")=='0'
         process_params.target_seg = value_seg
-        
+
         # n_states, n_masks, memory usage
         process_params = utils.recalculate_params(process_params)
 
         # save session parameters
         for k in process_params:
             session[k] = process_params[k]
-        return redirect(url_for('create_dataset'))
+
+
+        request_id = str(time.time()).replace('.','-')
+        proc = Process(target=create_dataset, args=(process_params, request_id))
+        proc.start()
+
+        global proc_list
+        proc_list.append((request_id,proc))
+
+        return redirect(url_for('ds_download', request_id=request_id))
+
     else:
         return render_template('select1.html', params = process_params, pos_scales=possible_scales)
 
-@app.route('/create_ds', methods=['GET', 'POST'])
-def create_dataset():
-    process_params = DottedDict({k : session[k] for k in session})
-
-    # ID from timestamp
-    ds_creator = utils.DatasetCreator()
-
-    global creator_list
-    creator_list = []
-    creator_list.append(ds_creator)
-
-    if ds_creator.status == 'Finished':
-        request_id = str(time.time()).replace('.','-')
-        th = threading.Thread(target=thread_func, args=(process_params,request_id))
-        th.start()
-
-        return render_template('create_ds.html', request_id=request_id)
-    else:
-        redirect(url_for('create_dataset'))
-
-def thread_func(process_params, request_id):
-    global creator_list
-    ds_creator = creator_list[-1]
-    try:
-        ds_creator.create_dataset(process_params, request_id)
-    except:
-        print('Error: Could not create dataset!')
-
-@app.route('/status')
-def thread_status():
-    global creator_list
-    ds_creator = creator_list[-1]
-    state_dict = {
-        'status' : ds_creator.status
-    }
-    return jsonify(state_dict)
-
 @app.route('/<request_id>/download')
 def ds_download(request_id):
-    p = os.path.join('static','requests', request_id)
+
+    global proc_list
+    # find process and join
+    for i,(req_id,proc) in enumerate(proc_list):
+        if req_id==request_id:
+            proc_list.pop(i)
+            proc.join()
+            break
+
+    p = os.path.join('/home/kahlmeyer94/csprites/app', 'static','requests', request_id)
     name = [x for x in os.listdir(p) if x.endswith('.zip')][0]
     p_file = os.path.join(p, name)
 
@@ -147,19 +130,24 @@ def ds_download(request_id):
         return_data.write(fo.read())
     # (after writing, cursor will be at last byte, so move it to start)
     return_data.seek(0)
-    shutil.rmtree(p)
+    shutil.rmtree(p, ignore_errors=True)
 
     return send_file(return_data, mimetype='application/zip', as_attachment=True, attachment_filename=name)
 
 def clean_requests():
     t_now = time.time()
-    p = os.path.join('static', 'requests')
+    p = os.path.join('/home/kahlmeyer94/csprites/app', 'static','requests')
     if os.path.exists(p):
         l = [(float(x.replace('-','.')), os.path.join(p,x)) for x in os.listdir(p)]
         for x, p in l:
             diff = t_now-x
             if diff > MAX_AGE:
-                shutil.rmtree(p)
+                shutil.rmtree(p, ignore_errors=True)
+
+def create_dataset(process_params, request_id):
+    ds_creator = utils.DatasetCreator()
+    ds_creator.create_dataset(process_params, request_id)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
