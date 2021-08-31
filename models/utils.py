@@ -1,12 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from torchvision import transforms
-
-
-def imshow(img):
-    npimg = img.detach().cpu().numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
+import torch
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
 
 
 def normalize_transform(means, stds):
@@ -23,3 +20,45 @@ def inverse_normalize_transform(means, stds):
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def linprob_model(fn_forward, dl_linprob, device):
+    R = []
+    Y = []
+    with torch.no_grad():
+        for x, y in dl_linprob:
+            x = x.to(device)
+            r = fn_forward(x)
+            R.append(r.detach().cpu().numpy())
+            Y.append(y.cpu().numpy())
+    R = np.concatenate(R)
+    Y = np.concatenate(Y)
+    #
+    knn = KNeighborsClassifier(n_neighbors=5)
+    knn.fit(R, Y)
+    knnacc = knn.score(R, Y)
+    #
+    clf = LogisticRegression(random_state=0, tol=0.001, max_iter=200).fit(R, Y)
+    linacc = clf.score(R, Y)
+    return linacc, knnacc
+
+
+def get_representations(model_fn, dl_linprob, device):
+    R = []
+    Y = []
+    with torch.no_grad():
+        for x, y in dl_linprob:
+            x = x.to(device)
+            r = model_fn(x)
+            R.append(r.detach().cpu().numpy())
+            Y.append(y.cpu().numpy())
+    R = np.concatenate(R)
+    Y = np.concatenate(Y)
+    return R, Y
+
+
+def off_diagonal(x):
+    # return a flattened view of the off-diagonal elements of a square matrix
+    n, m = x.shape
+    assert n == m
+    return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()

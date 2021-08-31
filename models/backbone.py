@@ -1,6 +1,7 @@
 import torch
 import torchvision
 import numpy as np
+from vit_pytorch import ViT
 
 
 def get_activation(activation):
@@ -216,6 +217,12 @@ def get_wide_resneXt_backbone(n_layers, **kwargs):
     return model
 
 
+def get_ViT(**kwargs):
+    model = ViT(**kwargs)
+    model.dim_out = model.mlp_head[1].out_features
+    return model
+
+
 ALL_BACKBONES = [
     "MobileNet-v2",
     "MobileNet-v3-Small",
@@ -235,7 +242,8 @@ ALL_BACKBONES = [
     "Wide-ResNet-50-2",
     "Wide-ResNet-101-2",
     "ResNeXt-50-32x4d",
-    "ResNeXt-101-32x8d"
+    "ResNeXt-101-32x8d",
+    "ViT"
 ]
 
 
@@ -278,6 +286,8 @@ def get_backbone(backbone: str, **kwargs):
         model = get_wide_resnet_backbone(50, **kwargs)
     elif backbone == "Wide-ResNet-101-2":
         model = get_wide_resnet_backbone(101, **kwargs)
+    elif backbone == "ViT":
+        model = get_ViT(**kwargs)
     else:
         raise NotImplementedError(f"backbone: {backbone}")
     return model
