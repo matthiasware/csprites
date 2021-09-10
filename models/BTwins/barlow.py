@@ -103,7 +103,7 @@ class BarlowTwins(nn.Module):
     def get_representation(self, x):
         return self.backbone(x)
 
-    def forward(self, y1, y2):
+    def forward(self, y1, y2, return_all=False):
         z1 = self.backbone(y1)
         z2 = self.backbone(y2)
         z1 = self.projector(z1)
@@ -120,7 +120,10 @@ class BarlowTwins(nn.Module):
         on_diag = torch.diagonal(c).add_(-1).pow_(2).sum()
         off_diag = off_diagonal(c).pow_(2).sum()
         loss = self.scale_factor * (on_diag + self.lambd * off_diag)
-        return loss
+        if return_all:
+            return loss, on_diag, off_diag * self.lambd
+        else:
+            return loss
 
 
 class CspritesBarlowTwins(nn.Module):

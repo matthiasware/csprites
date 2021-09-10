@@ -137,3 +137,6 @@ def plot_beta_pdf(dist=None, ab=None, title=None, p_file=None):
     if p_file is not None:
         plt.savefig(p_file)
     plt.show()
+
+def beta_normalize(x, beta_mean, beta_std):
+    return (x - beta_mean) / beta_std

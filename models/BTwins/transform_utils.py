@@ -131,3 +131,24 @@ class CSpritesTransform(torch.nn.Module):
             x21 = self.fin_transform(x21)
             x22 = self.fin_transform(x22)
         return x11, x12, x21, x22
+
+
+class CSpritesTripleTransform(torch.nn.Module):
+    def __init__(self, init_transform, geo_transform, stl_transform, fin_transform):
+        super().__init__()
+        self.init_transform = init_transform
+        self.stl_transform = stl_transform
+        self.geo_transform = geo_transform
+        self.fin_transform = fin_transform
+
+    def forward(self, x):
+        x = self.init_transform(x)
+        #
+        x_geo = self.stl_transform(x)
+        x_stl = self.geo_transform(x)
+        #
+        if self.fin_transform is not None:
+            x = self.fin_transform(x)
+            x_stl = self.fin_transform(x_stl)
+            x_geo = self.fin_transform(x_geo)
+        return x, x_stl, x_geo

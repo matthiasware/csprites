@@ -2,6 +2,7 @@ import torch
 import torchvision
 import numpy as np
 from vit_pytorch import ViT
+from fcn import FCN
 
 
 def get_activation(activation):
@@ -223,7 +224,52 @@ def get_ViT(**kwargs):
     return model
 
 
+def get_resnet9(pretrained=False, progress=False, **kwargs):
+    import torchvision.models.resnet as ptr
+    model = ptr._resnet('resnet9', ptr.BasicBlock, [1, 1, 1, 1], pretrained, progress, **kwargs)
+    model.fc = torch.nn.Identity()
+    model.dim_out = 512
+    return model
+
+
+def get_fcn(**kwargs):
+    model = FCN(**kwargs)
+    model.fc = torch.nn.Identity()
+    return model
+
+
+def get_fcn32i223o128(ch_last, **kwargs):
+    # ~ 500k
+    planes = [32, 64, 64, 128, ch_last]
+    blocks = [1, 2, 2, 3, 1]
+    model = FCN(planes=planes, blocks=blocks, **kwargs)
+    model.fc = torch.nn.Identity()
+    return model
+
+
+def get_fcn16i223o64(ch_last, **kwargs):
+    # ~ 188k
+    planes = [16, 32, 32, 64, ch_last]
+    blocks = [1, 2, 2, 3, 1]
+    model = FCN(planes=planes, blocks=blocks, **kwargs)
+    model.fc = torch.nn.Identity()
+    return model
+
+
+def get_fcn8i223o32(ch_last, **kwargs):
+    # ~ 50k
+    planes = [8, 16, 32, 32, ch_last]
+    blocks = [1, 2, 2, 3, 1]
+    model = FCN(planes=planes, blocks=blocks, **kwargs)
+    model.fc = torch.nn.Identity()
+    return model
+
+
 ALL_BACKBONES = [
+    "FCN",
+    "FCN32i223o128",
+    "FCN16i223o64",
+    "FCN8i223o32",
     "MobileNet-v2",
     "MobileNet-v3-Small",
     "MobileNet-v3-Large",
@@ -234,6 +280,7 @@ ALL_BACKBONES = [
     "Densenet-161",
     "Densenet-169",
     "Densenet-201",
+    "ResNet-9",
     "ResNet-18",
     "ResNet-34",
     "ResNet-50",
@@ -268,6 +315,8 @@ def get_backbone(backbone: str, **kwargs):
         model = get_densenet_161_backbone(**kwargs)
     elif backbone == "Densenet-201":
         model = get_densenet_201_backbone(**kwargs)
+    elif backbone == "ResNet-9":
+        model = get_resnet9(**kwargs)
     elif backbone == "ResNet-18":
         model = get_resnet_backbone(18, **kwargs)
     elif backbone == "ResNet-34":
@@ -288,6 +337,14 @@ def get_backbone(backbone: str, **kwargs):
         model = get_wide_resnet_backbone(101, **kwargs)
     elif backbone == "ViT":
         model = get_ViT(**kwargs)
+    elif backbone == "FCN":
+        model = get_fcn(**kwargs)
+    elif backbone == "FCN32i223o128":
+        model = get_fcn32i223o128(**kwargs)
+    elif backbone == "FCN16i223o64":
+        model = get_fcn16i223o64(**kwargs)
+    elif backbone == "FCN8i223o32":
+        model = get_fcn8i223o32(**kwargs)
     else:
         raise NotImplementedError(f"backbone: {backbone}")
     return model

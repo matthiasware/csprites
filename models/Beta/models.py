@@ -4,28 +4,34 @@ import torch.nn as nn
 class BetaTwins(nn.Module):
     def __init__(self, backbone, beta_projector, barlow_projector):
         super().__init__()
-        beta_projector = [backbone.dim_out] + beta_projector
-        beta_projector = get_projector(beta_projector, "Sigmoid")
-        #
-        barlow_projector = [beta_projector.dim_out] + barlow_projector
-        barlow_projector = get_projector(barlow_projector, None)
-        #
+        self.backbone = backbone
         self.beta_projector = beta_projector
         self.barlow_projector = barlow_projector
-        self.backbone = backbone
         #
         self.bn = nn.BatchNorm1d(self.barlow_projector.dim_out, affine=False)
+        self.beta_bn = nn.BatchNorm1d(self.beta_projector.dim_out, affine=False)
+        #
+        self.bn_geo = nn.BatchNorm1d(self.barlow_projector.dim_out, affine=False)
+        self.bn_stl = nn.BatchNorm1d(self.barlow_projector.dim_out, affine=False)
+
+    def backbone_proj(self, x):
+        return self.backbone(x)
+
+    def beta_proj(self, x):
+        return self.beta_projector(self.backbone(x))
+
+    def barlow_proj(self, x):
+        return self.barlow_projector(self.beta_proj(x))
 
     def forward(self, x):
-        return self.barlow_projector(self.beta_projector(self.backbone(x)))
-
-    def representations(self, x):
-        return self.beta_projector(self.backbone(x))
+        return self.beta_proj(x)
 
 
 def get_activation(act):
     if act == "Sigmoid":
         return nn.Sigmoid()
+    elif act == "Softmax":
+        return nn.Softmax()
     elif act == "ReLU":
         return nn.ReLU(inplace=True)
     else:
@@ -49,14 +55,14 @@ def get_projector_layers(sizes, activation_last=None, batchnorm_last=False):
     return layers
 
 
-def get_projector(sizes, activation_last):
-    assert len(sizes) > 0
+def get_projector(planes_in: int, sizes: list, activation_last: str = None):
+    sizes = [planes_in] + sizes
     if len(sizes) > 1:
         layers = get_projector_layers(sizes, activation_last=activation_last)
-        projector = nn.Sequential(*layers)
     elif len(sizes) == 1 and activation_last is not None:
-        projector = nn.Sequential(get_activation(activation_last))
+        layers = [get_activation(activation_last)]
     else:
-        projector = nn.Identity()
+        layers = [nn.Identity()]
+    projector = nn.Sequential(*layers)
     projector.dim_out = sizes[-1]
     return projector
