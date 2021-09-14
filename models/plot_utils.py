@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch.distributions import Beta
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 
 def imshow(img):
@@ -150,3 +151,62 @@ def scatter(x, show=True, p_file=None, title=None):
     if show:
         plt.show()
     plt.close()
+
+
+
+
+def plot_mean_dists(R, p_dir=None, show=False):
+    plt.bar(range(R.shape[1]), R.mean(axis=0), width=1)
+    plt.title("Feature Mean")
+    if p_dir is not None:
+        plt.savefig(Path(p_dir) / "feature_dist_valid.png")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+    plt.bar(range(R.shape[0]), R.mean(axis=1), width=1)
+    plt.title("Sample Mean")
+    if p_dir is not None:
+        plt.savefig( Path(p_dir)  / "sample_dist_valid.png")
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_class_dist(R, Y, n_plot=100, p_plot=None, show=True, titles=None):
+    n_plot = 100
+    idcs = np.random.choice(R.shape[0], size=n_plot, replace=False)
+    #
+    R_plot = R[idcs]
+    Y_plot = Y[idcs]
+    #
+    dim_featuers = R_plot.shape[1]
+    num_targets = Y_plot.shape[1]
+    scale = 4
+    figsize = (num_targets * scale, dim_featuers)
+    fig, axes = plt.subplots(1, num_targets, figsize=figsize)
+    for col_idx in range(num_targets):
+        ax = axes[col_idx]
+        if titles is not None:
+            ax.set_title(titles[col_idx])
+        for row_idx in range(dim_featuers):
+            # reps
+            r = R_plot[:, row_idx]
+            r = (r - r.min()) / (r - r.min()).max()
+            # targets
+            y = Y_plot[:,col_idx]
+            xx = np.ones(len(r)) * row_idx
+            #
+            ax.scatter(r, xx, c=y, cmap="turbo")
+            ax.get_xaxis().set_ticks([])
+            ax.get_yaxis().set_ticks([])
+            #ax.set_ylim([0.95, 1.05])
+    plt.tight_layout()
+    if p_plot is not None:
+        plt.savefig(p_plot)
+    if show is True:
+        plt.show()
+    else:
+        plt.close()

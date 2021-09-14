@@ -72,7 +72,8 @@ def main(config):
                                                  scale=config["sc_rrc_scale"],
                                                  ratio=config["sc_rrc_ratio"],
                                                  interpolation=Image.BICUBIC),
-                    transforms.RandomHorizontalFlip(p=config["pob_flips"]),
+                    transforms.RandomHorizontalFlip(p=config["prob_flips"]),
+                    transforms.RandomVerticalFlip(p=config["prob_flips"]),
                     transforms.RandomApply(
                         [transforms.ColorJitter(
                             brightness=config["sc_brightness"],
@@ -93,7 +94,8 @@ def main(config):
                                                  scale=config["sc_rrc_scale"],
                                                  ratio=config["sc_rrc_ratio"],
                                                  interpolation=Image.BICUBIC),
-                    transforms.RandomHorizontalFlip(p=config["porb_flips"]),
+                    transforms.RandomHorizontalFlip(p=config["prob_flips"]),
+                    transforms.RandomVerticalFlip(p=config["prob_flips"]),
                     transforms.RandomApply(
                         [transforms.ColorJitter(
                             brightness=config["sc_brightness"],
@@ -429,35 +431,60 @@ if __name__ == "__main__":
     # STYLE TRANSFORMATIONS
     # scales
     # max to min
-    scales_brightness = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    scales_brightness = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
     scales_brightness = [(bs, 2 - bs) for bs in scales_brightness]
 
     # hues
     # max to min
-    scales_hue = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15]
+    scales_hue = [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0]
     scales_hue = [(-h, h) for h in scales_hue]
 
     # contrast
-    scales_contrast = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    scales_contrast = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
     scales_contrast = [(sc, 3 - 2 * sc) for sc in scales_contrast]
 
     # saturation
-    scales_saturation = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    scales_saturation = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
     scales_saturation = [(ss, 3 - 2 * ss) for ss in scales_saturation]
 
     # probabilities
-    p_solarise = np.linspace(0.3, 0.1, 8)
-    p_gaussblur = np.linspace(0.5, 0.3, 8)
+    p_solarise = np.linspace(0.4, 0, 10)
+    p_gaussblur = np.linspace(0.4, 0, 10)
 
     # GEOMETRIC TRANSFORMATIONS
     scales_rrc_scale = [(0.55, 0.85), (0.65,  0.9), (0.75, 0.95), (0.8, 1), (1, 1)]
     scales_rrc_ratio = [(0.75, 1.3333), (0.75, 1.3333), (0.75, 1.3333), (0.75, 1.3333), (1, 1)]
 
-    p_flips = np.linspace(0.6, 0, 5)
+    p_flips = np.linspace(0.5, 0, 5)
+    #
+    num_geo_stages = len(p_flips)
+    num_stl_stages = len(scales_brightness)
+    #
+    assert len(scales_brightness) == num_stl_stages
+    assert len(scales_hue) == num_stl_stages
+    assert len(scales_contrast) == num_stl_stages
+    assert len(scales_saturation) == num_stl_stages
+    assert len(p_solarise) == num_stl_stages
+    assert len(p_gaussblur) == num_stl_stages
+    assert len(scales_rrc_ratio) == num_geo_stages
+    assert len(scales_rrc_scale) == num_geo_stages
+    assert len(p_flips) == num_geo_stages
+
+    # min to max: 0 augmentation to max augmentation
+    scales_brightness = scales_brightness[::-1]
+    scales_hue = scales_hue[::-1]
+    scales_contrast = scales_contrast[::-1]
+    scales_saturation = scales_saturation[::-1]
+    p_solarise = p_solarise[::-1]
+    p_gaussblur = p_gaussblur[::-1]
+    scales_rrc_scale = scales_rrc_scale[::-1]
+    scales_rrc_ratio = scales_rrc_ratio[::-1]
+    p_flips = p_flips[::-1]
+    #
 
     all_stages = []
-    for stl_idx in reversed(range(num_stl_stages)):
-        for geo_idx in reversed(range(num_geo_stages)):
+    for stl_idx in range(num_stl_stages):
+        for geo_idx in range(num_geo_stages):
             all_stages.append({
                 'sc_brightness': scales_brightness[stl_idx],
                 'sc_hue': scales_hue[stl_idx],
@@ -468,20 +495,24 @@ if __name__ == "__main__":
                 'sc_rrc_scale': scales_rrc_scale[geo_idx],
                 'sc_rrc_ratio': scales_rrc_ratio[geo_idx],
                 'prob_flips': p_flips[geo_idx],
-                'stl_idx': stl_idx,
-                'geo_idx': geo_idx
+                'aug_stl_factor': stl_idx,
+                'aug_geo_factor': geo_idx
             })
 
     step = 1
     ######################
     # DEVICE
     ######################
-    device = 1
+    device = 0
     #
     for transform_stage in all_stages:
         print("#" * 100)
-        print("[{:>3d} /{:>3d}]: style: {}, geo: {}".format(transform_stage["stl_idx"], transform_stage["geo_idx"]))
+        print("[{:>3d} /{:>3d}]: style: {}, geo: {}".format(step, len(all_stages), transform_stage["aug_stl_factor"], transform_stage["aug_geo_factor"]))
         print("#" * 100)
+        if step <= 5:
+            print("DONE")
+            step += 1
+            continue
         config = {
             'device': 'cuda',
             'cuda_visible_devices': "{}".format(device),
@@ -489,13 +520,13 @@ if __name__ == "__main__":
             'target_variable': 'shape',
             'batch_size': 512,
             'num_workers': 20,
-            'num_epochs': 2,
+            'num_epochs': 200,
             'freqs': {
-                'ckpt': 200,        # epochs
-                'linprob': 2,       # epochs
+                'ckpt': 200,         # epochs
+                'linprob': 10,       # epochs
             },
             'num_vis': 64,
-            'backbone': 'FCN8i223o32',
+            'backbone': 'FCN16i223o64',
             'dim_out': 64,
             'backbone_args': {
                 'ch_last': 64,
@@ -525,17 +556,17 @@ if __name__ == "__main__":
             'sc_rrc_scale': transform_stage["sc_rrc_scale"],
             'sc_rrc_ratio': transform_stage["sc_rrc_ratio"],
             'prob_flips': transform_stage["prob_flips"],
-            'stl_idx': transform_stage["stl_idx"],
-            'geo_idx': transform_stage["geo_idx"],
+            'aug_stl_factor': transform_stage["aug_stl_factor"],
+            'aug_geo_factor': transform_stage["aug_geo_factor"],
         }
-        p_base = Path("/mnt/experiments/csprites") / Path(config["p_data"]).name / "tmp"
+        p_base = Path("/mnt/experiments/csprites") / Path(config["p_data"]).name / "aug_stl_10_geo_5"
         #
         ts = time.time()
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
         #
         config["p_experiment"] = str(p_base / "AUG[stl_{}_geo_{}]_BTwins_[{}_d_{}]_{}".format(
-            config["stl_idx"],
-            config["geo_idx"],
+            config["aug_stl_factor"],
+            config["aug_geo_factor"],
             config["backbone"],
             config["dim_out"],
             st))
@@ -548,3 +579,4 @@ if __name__ == "__main__":
             main(config)
         except Exception as e:
             print("ERROR but continue")
+            print(e)
