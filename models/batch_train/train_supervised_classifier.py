@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import pickle
 import timeit
+
+import warnings
+warnings.filterwarnings('ignore')
 #
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,6 +26,8 @@ from csprites.datasets import ClassificationDataset
 import utils
 from backbone import get_backbone
 from optimizer import get_optimizer
+import plot_utils
+import eval_utils
 
 
 def main(config):
@@ -39,21 +44,25 @@ def main(config):
         ds_config = pickle.load(file)
 
     target_variable = config.target_variable
-    target_idx = [idx for idx, target in enumerate(
-        ds_config["classes"]) if target == target_variable][0]
+    target_idx = [idx for idx, target in enumerate(ds_config["classes"]) if target == target_variable][0]
     n_classes = ds_config["n_classes"][target_variable]
     #
-    def target_transform(x): return x[target_idx]
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         utils.normalize_transform(ds_config["means"],
+    norm_transform = utils.normalize_transform(ds_config["means"],
                                    ds_config["stds"])
-         ])
+    #
+    target_transform = lambda x: x[target_idx]
+    transform = transform = transforms.Compose(
+        [transforms.ToTensor(),
+         norm_transform,
+        ])
+    inverse_norm_transform = utils.inverse_normalize_transform(
+        ds_config["means"],
+        ds_config["stds"]
+    )
 
-    # DS
     # TRAIN
     ds_train = ClassificationDataset(
-        p_data=config.p_data,
+        p_data = config.p_data,
         transform=transform,
         target_transform=target_transform,
         split="train"
@@ -67,7 +76,7 @@ def main(config):
     )
     # VALID
     ds_valid = ClassificationDataset(
-        p_data=config.p_data,
+        p_data = config.p_data,
         transform=transform,
         target_transform=target_transform,
         split="valid"
@@ -76,25 +85,23 @@ def main(config):
         ds_valid,
         batch_size=config.batch_size,
         shuffle=True,
-        num_workers=config.num_workers,
+        num_workers = config.num_workers,
         pin_memory=False
     )
 
     model = get_backbone(config.backbone, **config.backbone_args)
-    model.fc = torch.nn.Linear(
-        in_features=model.dim_out, out_features=n_classes)
+    model.fc = torch.nn.Linear(in_features=model.dim_out, out_features=n_classes)
     print("#param [m]: {:.3f}".format(utils.count_parameters(model) * 1e-6))
-    print(model)
+    #
     if torch.cuda.device_count() > 1 and device != "cpu":
         print("Using {} gpus!".format(torch.cuda.device_count()))
         model = torch.nn.DataParallel(model)
     model = model.to(device)
-    #
-    optimizer = get_optimizer(
-        config.optimizer, model.parameters(), config.optimizer_args)
+    print(model)
+
+    optimizer = get_optimizer(config.optimizer, model.parameters(), config.optimizer_args)
     criterion = nn.CrossEntropyLoss()
 
-    # TRAIN
     stats = {
         'train': {
             'loss': [],
@@ -128,7 +135,7 @@ def main(config):
         epoch_correct = 0
         #
         desc = desc_tmp.format(epoch_idx, config.num_epochs, 'train')
-        pbar = tqdm(dl_train, bar_format=desc + '{bar:10}{r_bar}{bar:-10b}')
+        pbar = tqdm(dl_train, bar_format= desc + '{bar:10}{r_bar}{bar:-10b}')
         #
         for x, y in pbar:
             x = x.to(device)
@@ -154,7 +161,7 @@ def main(config):
         stats.train.loss.append(epoch_loss / epoch_step)
         stats.train.acc.append(epoch_correct / epoch_total)
         stats.train.epoch.append(epoch_idx)
-
+        
         ################
         # EVAL
         ################
@@ -166,8 +173,7 @@ def main(config):
             epoch_correct = 0
             #
             desc = desc_tmp.format(epoch_idx, config.num_epochs, 'valid')
-            pbar = tqdm(dl_valid, bar_format=desc +
-                        '{bar:10}{r_bar}{bar:-10b}')
+            pbar = tqdm(dl_valid, bar_format= desc + '{bar:10}{r_bar}{bar:-10b}')
             #
             for x, y in pbar:
                 x = x.to(device)
@@ -193,11 +199,9 @@ def main(config):
         if epoch_idx % config.freqs.ckpt == 0 or epoch_idx == config.num_epochs:
             print("save model!")
             if torch.cuda.device_count() > 1 and device != "cpu":
-                torch.save(model.module.state_dict(), p_ckpts /
-                           config.p_model.format(epoch_idx))
+                torch.save(model.module.state_dict(), p_ckpts / config.p_model.format(epoch_idx))
             else:
-                torch.save(model.state_dict(), p_ckpts /
-                           config.p_model.format(epoch_idx))
+                torch.save(model.state_dict(), p_ckpts / config.p_model.format(epoch_idx))
 
     # plot losses
     plt.plot(stats.train.epoch, stats.train.loss, label="train")
@@ -210,7 +214,7 @@ def main(config):
     # plot accs
     plt.plot(stats.train.epoch, stats.train.acc, label="train")
     plt.plot(stats.valid.epoch, stats.valid.acc, label="valid")
-    plt.yticks([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1])
+    plt.yticks([0.5,0.6,0.7,0.8,0.85,0.9,0.95,1])
     plt.legend()
     plt.savefig(p_experiment / "acc.png")
     plt.close()
@@ -220,90 +224,55 @@ def main(config):
     with open(p_experiment / config.p_stats, "wb") as file:
         pickle.dump(stats, file)
 
-    # TRAIN
-    ds_train = ClassificationDataset(
+    dl_train, dl_valid = utils.get_raw_csprites_dataloader(
         p_data=config.p_data,
-        transform=transform,
-        target_transform=None,
-        split="train"
+        img_size = ds_config["img_size"],
+        batch_size = config.batch_size,
+        norm_transform=norm_transform,
+        num_workers = config["num_workers"]
     )
-    dl_train = DataLoader(
-        ds_train,
-        batch_size=config.batch_size,
-        shuffle=False,
-        num_workers=config.num_workers,
-        pin_memory=False
-    )
-    # VALID
-    ds_valid = ClassificationDataset(
-        p_data=config.p_data,
-        transform=transform,
-        target_transform=None,
-        split="valid"
-    )
-    dl_valid = DataLoader(
-        ds_valid,
-        batch_size=config.batch_size,
-        shuffle=False,
-        num_workers=config.num_workers,
-        pin_memory=False
-    )
-
-    model = get_backbone(config.backbone, **config.backbone_args)
-    ckpt = torch.load(str(p_ckpts / config.p_model.format(config.num_epochs)))
-    r = model.load_state_dict(ckpt, strict=False)
-    assert len(r.missing_keys) == 0
-    assert len(r.unexpected_keys) == 2
-    #
-    model = model.to(device)
-    model.eval()
-
     p_R_train = p_experiment / config["p_R_train"]
     p_Y_train = p_experiment / config["p_Y_train"]
     p_R_valid = p_experiment / config["p_R_valid"]
     p_Y_valid = p_experiment / config["p_Y_valid"]
-
-    R_train = []
-    R_valid = []
-    Y_train = []
-    Y_valid = []
     #
-    for x, y in tqdm(dl_train):
-        x = x.to(device)
-        with torch.no_grad():
-            r = model(x).detach().cpu().numpy()
-        R_train.append(r)
-        Y_train.append(y.numpy())
+
+    model.fc = nn.Identity()
+    model.eval()
+    R_train, Y_train = utils.get_representations(model, dl_train, device, imgs=False)
+    R_valid, Y_valid, X_valid = utils.get_representations(model, dl_valid, device, imgs=True, inverse_norm_transform=inverse_norm_transform)
     #
-    for x, y in tqdm(dl_valid):
-        x = x.to(device)
-        with torch.no_grad():
-            r = model(x).detach().cpu().numpy()
-        R_valid.append(r)
-        Y_valid.append(y.numpy())
-
-    R_train = np.concatenate(R_train)
-    R_valid = np.concatenate(R_valid)
-    Y_train = np.concatenate(Y_train)
-    Y_valid = np.concatenate(Y_valid)
-
     np.save(p_R_train, R_train)
     np.save(p_Y_train, Y_train)
     np.save(p_R_valid, R_valid)
     np.save(p_Y_valid, Y_valid)
 
+    #
+    print("TRAIN (R, Y)", R_train.shape, Y_train.shape)
+    print("VALID (R, Y)", R_valid.shape, Y_valid.shape)
+
+    eval_utils.eval_representations(
+        R_train=R_train,
+        R_valid=R_valid,
+        Y_train=Y_train,
+        Y_valid=Y_valid,
+        X_valid=X_valid,
+        p_experiment=p_experiment,
+        class_names = ds_config["classes"],
+        show=False
+    )
 
 if __name__ == "__main__":
     bb_config = []
-    for backbone in ["FCN8i223o32"]:
-        for ch_last in [128]:
+    for backbone in ["FCN16i223o64"]:
+        for ch_last in [64]:
             for target in ["shape", "scale", "color", "angle", "py", "px"]:
                 bb_config.append((backbone, ch_last, target))
 
                 config = {
                     'device': 'cuda',
                     'cuda_visible_devices': '0',
-                    'p_data': "/mnt/data/csprites/single_csprites_64x64_n7_c32_a32_p30_s3_bg_inf_random_function_70000",
+                    'p_data': "/mnt/data/csprites/single_csprites_64x64_n7_c24_a32_p13_s3_bg_inf_random_function_77000",
                     'target_variable': target,
                     'batch_size': 512,
                     'num_workers': 6,

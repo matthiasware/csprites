@@ -38,6 +38,7 @@ from csprites.datasets import ClassificationDataset
 import utils
 from backbone import get_backbone
 from optimizer import get_optimizer
+import eval_utils
 
 
 def main(config):
@@ -47,7 +48,6 @@ def main(config):
     os.environ["CUDA_VISIBLE_DEVICES"] = config.cuda_visible_devices
     device = torch.device(config.device)
 
-    # DATA
     p_ds_config = Path(config.p_data) / "config.pkl"
 
     with open(p_ds_config, "rb") as file:
@@ -237,20 +237,12 @@ def main(config):
     plt.plot(stats.train.epoch, stats.train.loss, label="train")
     plt.legend()
     plt.savefig(p_experiment / "barlow_loss.png")
-    # plt.show()
     plt.close()
-
-
-    # plot linprob loss
-    #plt.plot(stats.linprob.epoch, stats.linprob.loss, label="train")
-    #plt.legend()
-    #plt.savefig(p_experiment / "linprob_loss.png")
-    #plt.show()
 
     # plot linprob acc
     plt.plot(stats.linprob.epoch, stats.linprob.knnacc, label="knn")
     plt.plot(stats.linprob.epoch, stats.linprob.linacc, label="lin")
-    plt.yticks([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1])
+    plt.yticks([0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1])
     plt.legend()
     plt.savefig(p_experiment / "linprob_acc.png")
     plt.close()
@@ -260,171 +252,42 @@ def main(config):
     with open(p_experiment / config.p_stats, "wb") as file:
         pickle.dump(stats, file)
 
+
+    dl_train, dl_valid = utils.get_raw_csprites_dataloader(
+        p_data=config.p_data,
+        img_size = ds_config["img_size"],
+        batch_size = config.batch_size,
+        norm_transform=norm_transform,
+        num_workers = config["num_workers"]
+    )
     p_R_train = p_experiment / config["p_R_train"]
     p_Y_train = p_experiment / config["p_Y_train"]
     p_R_valid = p_experiment / config["p_R_valid"]
     p_Y_valid = p_experiment / config["p_Y_valid"]
-
-    # TRAIN
-    ds_train = ClassificationDataset(
-        p_data = config.p_data,
-        transform=transform_linprob,
-        target_transform=None,
-        split="train"
-    )
-    dl_train = DataLoader(
-        ds_train,
-        batch_size=config.batch_size,
-        shuffle=False,
-        num_workers=config.num_workers,
-        pin_memory=False,
-        drop_last=True
-    )
-    # LINPROB
-    ds_valid = ClassificationDataset(
-        p_data = config.p_data,
-        transform=transform_linprob,
-        target_transform=None,
-        split="valid"
-    )
-    dl_valid = DataLoader(
-        ds_valid,
-        batch_size=config.batch_size,
-        shuffle=False,
-        num_workers = config.num_workers,
-        pin_memory=False
-    )
-
+    #
     model.eval()
-    R_train, Y_train = utils.get_representations(model.backbone, dl_train, device)
-    R_valid, Y_valid = utils.get_representations(model.backbone, dl_train, device)
+    R_train, Y_train = utils.get_representations(model.backbone, dl_train, device, imgs=False)
+    R_valid, Y_valid, X_valid = utils.get_representations(model.backbone, dl_valid, device, imgs=True, inverse_norm_transform=inverse_norm_transform)
     #
     np.save(p_R_train, R_train)
     np.save(p_Y_train, Y_train)
     np.save(p_R_valid, R_valid)
     np.save(p_Y_valid, Y_valid)
 
-    # EVAL with all Features
-    ds_eval_train = ClassificationDataset(
-        p_data = config.p_data,
-        transform=transform_linprob,
-        target_transform=None,
-        split="train"
-    )
-    dl_eval_train = DataLoader(
-        ds_eval_train,
-        batch_size=config.batch_size,
-        shuffle=True,
-        num_workers = config.num_workers,
-        pin_memory=False
-    )
-    ds_eval_valid = ClassificationDataset(
-        p_data = config.p_data,
-        transform=transform_linprob,
-        target_transform=None,
-        split="valid"
-    )
-    dl_eval_valid = DataLoader(
-        ds_eval_valid,
-        batch_size=config.batch_size,
-        shuffle=True,
-        num_workers = config.num_workers,
-        pin_memory=False
-    )
-
-    R_valid, Y_valid, X_valid = utils.get_representations(model.backbone, dl_eval_valid, device, imgs=True, inverse_norm_transform=inverse_norm_transform)
-    R_train, Y_train = utils.get_representations(model.backbone, dl_eval_train, device, imgs=False)
-
-    # PRINT DIST
-    R = R_valid
-    plt.bar(range(R.shape[1]), R.mean(axis=0), width=1)
-    plt.title("Feature Mean")
-    plt.savefig(p_experiment / "feature_dist_valid.png")
-    plt.close()
-
-    plt.bar(range(R.shape[0]), R.mean(axis=1), width=1)
-    plt.title("Sample Mean")
-    plt.savefig(p_experiment / "sample_dist_valid.png")
-    plt.close()
-
-
-    # CLASS DISTRIBUTION
-    n_plot = 100
-    idcs = np.random.choice(R_valid.shape[0], size=n_plot, replace=False)
     #
-    R_plot = R_valid[idcs]
-    Y_plot = Y_valid[idcs]
-    #
-    dim_featuers = R_plot.shape[1]
-    num_targets = Y_plot.shape[1]
-    scale = 4
-    figsize = (num_targets * scale, dim_featuers)
-    fig, axes = plt.subplots(1, num_targets, figsize=figsize)
-    for col_idx in range(num_targets):
-        ax = axes[col_idx]
-        ax.set_title(ds_config["classes"][col_idx])
-        for row_idx in range(dim_featuers):
-            # reps
-            r = R_plot[:, row_idx]
-            r = (r - r.min()) / (r - r.min()).max()
-            # targets
-            y = Y_plot[:,col_idx]
-            xx = np.ones(len(r)) * row_idx
-            #
-            ax.scatter(r, xx, c=y, cmap="turbo")
-            ax.get_xaxis().set_ticks([])
-            ax.get_yaxis().set_ticks([])
-            #ax.set_ylim([0.95, 1.05])
-    plt.savefig(p_experiment / "class_distribution.png")
-    plt.tight_layout()
-    plt.close()
+    print("TRAIN (R, Y)", R_train.shape, Y_train.shape)
+    print("VALID (R, Y)", R_valid.shape, Y_valid.shape)
 
-    # PREDICT CLASSES
-    results = []
-    for target_idx in range(Y_valid.shape[1]):
-        target = ds_config["classes"][target_idx]
-        if len(set(Y_train[:, target_idx])) == 1:
-            print("{:>15}: acc = NA".format(target))
-            results.append(np.inf)
-            continue
-        clf = LogisticRegression(random_state=0).fit(R_train, Y_train[:, target_idx])
-        score = clf.score(R_valid, Y_valid[:, target_idx])
-        target = ds_config["classes"][target_idx]
-        print("{:>15}: acc = {:.2f}".format(target, score))
-        results.append(score)
-
-    fig, ax = plt.subplots(1, 1)
-    ax.bar(range(len(results)), results, width=1)
-    ax.set_ylim([0, 1])
-    ax.set_xticks(np.arange(len(ds_config["classes"])))
-    ax.set_xticklabels(ds_config["classes"])
-    plt.title("Prediction Accurace LR on valid")
-    plt.savefig(p_experiment / "score_lr.png")
-    plt.close()
-
-    # VISUALIZE LATENT DIM
-    R = R_valid
-    X = X_valid
-    Y = Y_valid
-    #
-    n_imgs = 50
-    topic_idcs = []
-    for dim_idx in range(R.shape[1]):
-        r = R[:, dim_idx]
-        idcs = np.argsort(r)[-n_imgs:]
-        topic_idcs.append(idcs)
-    topic_idcs = np.array(topic_idcs)
-
-    h, w = np.array(topic_idcs.shape) * 64
-    img = np.zeros((h, w, 3))
-    n_rows, n_cols = topic_idcs.shape
-    for row_idx in range(n_rows):
-        for col_idx in range(n_cols):
-            img_idx = topic_idcs[row_idx][col_idx]
-            img[row_idx * 64: row_idx * 64 + 64, col_idx * 64:col_idx * 64 + 64,:] = X[img_idx]
-
-    Image.fromarray(np.uint8(img * 255)).save(p_experiment / "feature_dims_highest.png")
-
+    eval_utils.eval_representations(
+        R_train=R_train,
+        R_valid=R_valid,
+        Y_train=Y_train,
+        Y_valid=Y_valid,
+        X_valid=X_valid,
+        p_experiment=p_experiment,
+        class_names = ds_config["classes"],
+        show=False
+    )
 
 if __name__ == "__main__":
 
@@ -503,33 +366,28 @@ if __name__ == "__main__":
     ######################
     # DEVICE
     ######################
-    device = 0
+    device = 1
     #
     for transform_stage in all_stages:
         print("#" * 100)
         print("[{:>3d} /{:>3d}]: style: {}, geo: {}".format(step, len(all_stages), transform_stage["aug_stl_factor"], transform_stage["aug_geo_factor"]))
         print("#" * 100)
-        if step <= 5:
-            print("DONE")
-            step += 1
-            continue
         config = {
             'device': 'cuda',
             'cuda_visible_devices': "{}".format(device),
-            'p_data': "/mnt/data/csprites/single_csprites_64x64_n7_c32_a32_p30_s3_bg_inf_random_function_70000",
+            'p_data': "/mnt/data/csprites/single_csprites_64x64_n7_c24_a32_p13_s3_bg_inf_random_function_77000",
             'target_variable': 'shape',
             'batch_size': 512,
             'num_workers': 20,
-            'num_epochs': 200,
+            'num_epochs': 100,
             'freqs': {
                 'ckpt': 200,         # epochs
                 'linprob': 10,       # epochs
             },
             'num_vis': 64,
             'backbone': 'FCN16i223o64',
-            'dim_out': 64,
             'backbone_args': {
-                'ch_last': 64,
+                'ch_last': 128,
                 'dim_in': 3,
             },
             'optimizer': 'adam',
@@ -537,7 +395,7 @@ if __name__ == "__main__":
                 'lr': 0.001,
                 'weight_decay': 1e-6
             },
-            'projector': [4 * 64, 4 * 64, 4 * 64],
+            'projector': [4 * 128, 4 * 128, 4 * 128],
             'scale_factor': 1,
             'p_ckpts': "ckpts",
             'p_model': "model_{}.ckpt",
@@ -559,7 +417,7 @@ if __name__ == "__main__":
             'aug_stl_factor': transform_stage["aug_stl_factor"],
             'aug_geo_factor': transform_stage["aug_geo_factor"],
         }
-        p_base = Path("/mnt/experiments/csprites") / Path(config["p_data"]).name / "aug_stl_10_geo_5"
+        p_base = Path("/mnt/experiments/csprites") / Path(config["p_data"]).name / "AUG_STL_10_GEO_5"
         #
         ts = time.time()
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
@@ -568,11 +426,10 @@ if __name__ == "__main__":
             config["aug_stl_factor"],
             config["aug_geo_factor"],
             config["backbone"],
-            config["dim_out"],
+            config["backbone_args"]["ch_last"],
             st))
         config['lambd'] = calc_lambda(config["projector"][-1])
         config = DottedDict(config)
-        #pprint.pprint(config)
         step += 1
 
         try:

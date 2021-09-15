@@ -187,3 +187,6 @@ def plot_latent_by_imgs(R, X, Y, n_imgs, show=False, p_plot=None):
         plt.show()
     if p_plot is not None:
         Image.fromarray(np.uint8(img * 255)).save(p_plot)
+
+
+
