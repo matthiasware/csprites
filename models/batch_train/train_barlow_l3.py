@@ -37,6 +37,8 @@ import utils
 from backbone import get_backbone
 from optimizer import get_optimizer
 from Beta.models import get_projector
+import eval_utils
+import plot_utils
 
 
 def create_masks(dim_cnt, dim_stl, dim_geo):
@@ -416,7 +418,7 @@ if __name__ == "__main__":
     ###########################
     # general settins
     ###########################
-    device = 1
+    device = 0
     n_fails = 0
     step = 1
     ###########################
@@ -458,7 +460,7 @@ if __name__ == "__main__":
             'target_variable': 'shape',
             'batch_size': 512,
             'num_workers': 30,
-            'num_epochs': 20,
+            'num_epochs': 2,
             'freqs': {
                 'ckpt': np.inf,     # epochs
                 'linprob': np.inf,       # epochs
@@ -490,7 +492,7 @@ if __name__ == "__main__":
             'p_Y_valid': 'Y_valid.npy',
             'p_Y_train': 'Y_train.npy',
         }
-        p_base = Path("/mnt/experiments/csprites") / Path(config["p_data"]).name / "tmp" / "BTL3"
+        p_base = Path("/mnt/experiments/csprites") / Path(config["p_data"]).name / "BTL3"
         #
         ts = time.time()
         st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H-%M-%S')
@@ -508,13 +510,12 @@ if __name__ == "__main__":
                                     )
         config = DottedDict(config)
         # pprint.pprint(config)
-        try:
-            # main(config)
-            time.sleep(0.1)
-            pass
-        except Exception as e:
-            n_fails += 1
-            print("ERROR but continue")
+        main(config)
+        # try:
+        #     main(config)
+        # except Exception as e:
+        #     n_fails += 1
+        #     print("ERROR but continue")
 
     print("#"* 100)
     print("DONE, n_fails: {}".format(n_fails))
