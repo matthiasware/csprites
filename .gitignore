@@ -11,6 +11,7 @@
 !*.html
 !*.css
 !*.json
+!*.yml
 !requirements.txt
 .ipynb_checkpoints/
 .pyc
