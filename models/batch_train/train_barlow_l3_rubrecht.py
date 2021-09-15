@@ -39,6 +39,7 @@ from optimizer import get_optimizer
 from Beta.models import get_projector
 import eval_utils
 import plot_utils
+import argparse
 
 
 def create_masks(dim_cnt, dim_stl, dim_geo):
@@ -415,10 +416,19 @@ def main(config):
     )
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--device', type=int,
+                        help='CUDA device')
+    parser.add_argument('--woff', type=float,
+                        help='off diagonal weight')
+
+    args = parser.parse_args()
+    w_off_arg = args.woff
+    device = args.device
+
     ###########################
     # general settins
     ###########################
-    device = 0
     n_fails = 0
     step = 1
     ###########################
@@ -429,7 +439,8 @@ if __name__ == "__main__":
     all_widths_factor_projector = [2, 4, 6, 8]
     all_ratio_cnt = [0, 0.2, 0.4, 0.6, 0.8, 1]
     all_ratio_stl_geo = [0, 0.2, 0.4, 0.6, 0.8, 1]
-    all_w_off = [0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100]
+    # all_w_off = [0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100]
+    all_w_off = [w_off_arg]
     
     all_runs = []
     for ch_last in all_ch_last:
