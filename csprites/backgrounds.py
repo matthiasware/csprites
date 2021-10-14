@@ -3,6 +3,9 @@ from itertools import cycle
 #
 import numpy as np
 import matplotlib.pyplot as plt
+#
+import torchvision.transforms as T
+from PIL import Image
 
 
 def rand_func_img(shape):
@@ -122,25 +125,6 @@ def get_infinite_bg(shape, style):
         raise Exception("Unkown style {}".format(style))
 
 
-# def get_bg_func(shape, bg_type, bg_style, n_bg=None):
-#     if bg_type == 'single':
-#         bg = get_single_bg(shape, bg_style)
-
-#         def func():
-#             return np.copy(bg)
-#     elif bg_type == 'multiple':
-#         assert n_bg is not None
-#         bgs = get_multiple_bg(shape, bg_style, n_bg)
-#         bgs = cycle(bgs)
-
-#         def func():
-#             return np.copy(next(bgs))
-#     elif bg_type == 'infinite':
-#         func = get_infinite_bg(shape, bg_style)
-#     else:
-#         raise Exception("BLA")
-#     return func
-
 def get_bg_func(shape, n_bg, bg_style):
     if n_bg == 1:
         bg = get_single_bg(shape, bg_style)
@@ -158,3 +142,100 @@ def get_bg_func(shape, n_bg, bg_style):
     else:
         raise Exception("BLA")
     return func
+
+
+def safe_divide(a, b):
+    return np.divide(a, np.maximum(b, 0.001))
+
+
+def scale(x):
+    return safe_divide(x - x.min(), x.max() - x.min())
+
+
+def rand_sin(x):
+    if np.random.random() > 0.5:
+        freq = np.random.uniform(-8, 8)
+    else:
+        freq = np.random.uniform(-1, 1)
+    add = np.random.uniform(0, 2 * np.pi)
+    return np.sin(freq * x + add) * np.random.uniform(-10, 10)
+
+
+def randColor():
+    return np.random.random((1, 1, 3))
+
+
+def getX(dX):
+    if np.random.random() > 0.5:
+        return np.linspace(0.0, 1.0, dX).reshape((1, dX, 1))
+    else:
+        return np.linspace(1.0, 0.0, dX).reshape((1, dX, 1))
+
+
+def getY(dY):
+    if np.random.random() > 0.5:
+        return np.linspace(0.0, 1.0, dY).reshape((dY, 1, 1))
+    else:
+        return np.linspace(1.0, 0.0, dY).reshape((dY, 1, 1))
+
+
+def rand_init_y(dY):
+    ax = getY(dY)
+    c = randColor()
+
+    img = np.add(ax, c)
+    return img
+
+
+def rand_init_x(dX):
+    ax = getX(dX)
+    c = randColor()
+
+    img = np.add(ax, c)
+    return img
+
+
+def basic_img(dX, dY):
+    imgx = rand_init_x(dX)
+    imgy = rand_init_y(dY)
+    #
+    f = random.choice([np.add, np.subtract, np.multiply, safe_divide])
+    img = f(imgx, imgy)
+
+    img = rand_sin(img)
+    return img
+
+
+def shuffle_along_axis(a, axis):
+    idx = np.random.rand(*a.shape).argsort(axis=axis)
+    return np.take_along_axis(a, idx, axis=axis)
+
+
+def rand_function_img(shape, n_min=3, n_max=3, add_min=-0.5, add_max=0.5):
+    h, w, _ = shape
+    dX, dY = w, h
+    #
+    n = np.random.randint(n_min, n_max + 1)
+    #
+    f = random.choice([np.prod, np.mean, np.sum])
+    img = f([basic_img(dX, dY) for _ in range(n)], axis=0)
+    img = scale(img)
+    if np.random.random() > 0.5:
+        add = np.random.uniform(add_min, add_max, 3)
+        img = img + add
+        img = img.clip(0, 1)
+    elif np.random.random() > 0.5:
+        add = np.random.uniform(0.1, 2, 3)
+        img = img * add
+        img = img.clip(0, 1)
+
+    img = np.tile(img, (dY // img.shape[0],
+                        dX // img.shape[1], 3 // img.shape[2]))
+    img = np.uint8(np.rint(img.clip(0.0, 1.0) * 255.0))
+
+    if img.max() - img.min() < 20:
+        img = rand_function_img(shape)
+    jitter = T.ColorJitter(brightness=(
+        0.9, 1.15), hue=(-0.5, 0.5), saturation=(0.4, 1.3), contrast=(.5, 2))
+    img = np.array(jitter(Image.fromarray(img)))
+    return img
